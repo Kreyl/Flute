@@ -1,4 +1,4 @@
-765807135267039
+765896395314116
 Antennas
 ANT_868_10d4x36
 PCB 75.7x37.5, AntPcb 14.8mm
@@ -207,8 +207,8 @@ Flute_868_inverted
 
 
 0
-0
-0
+1
+1
 Antennas
 IFA_LoRa_BEST
 
@@ -2902,7 +2902,7 @@ QFN20
 
 
 0
-29
+21
 21
 QFN_DFN
 QFN24
