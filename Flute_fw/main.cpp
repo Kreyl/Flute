@@ -38,7 +38,7 @@ FluteSnd_t Songs[SONG_CNT] = {
         {"4.wav", 0},
         {"5.wav", 0},
         {"6.wav", 0},
-        {"7.wav", 0},
+        {"7.wav", 10},
 };
 
 //static enum WakeupSrc_t {wusPowerOn, wusWakeup, wusUsb} WakeupSrc;
@@ -142,7 +142,7 @@ void ITask() {
                 break;
 
             case evtIdButtons:
-                Printf("Btn %u %u\r", Msg.BtnInfo.ID, Msg.BtnInfo.Evt);
+//                Printf("Btn %u %u\r", Msg.BtnInfo.ID, Msg.BtnInfo.Evt);
                 if(Msg.BtnInfo.Evt == beShortPress) Songs[Msg.BtnInfo.ID - 1].Play();
                 else if(Msg.BtnInfo.Evt == beRelease) {
                     if(ButtonsAreAllIdle()) AuPlayer.FadeOut();
@@ -151,7 +151,7 @@ void ITask() {
 
             // ==== Sound ====
             case evtIdAudioPlayStop:
-                Printf("Snd Done\r");
+//                Printf("Snd Done\r");
                 break;
 
             case evtIdEverySecond:
