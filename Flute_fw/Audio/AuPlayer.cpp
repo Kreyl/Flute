@@ -174,7 +174,7 @@ void AuPlayer_t::ISwitchSnds() {
 
 
 void FSound_t::FadeOut() {
-    Track.stop(AudioTrack::Fade::CosineOut, 18);
+    Track.stop(AudioTrack::Fade::CosineOut, 540);
 }
 
 

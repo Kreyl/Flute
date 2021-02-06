@@ -37,7 +37,13 @@
 #define INDIVIDUAL_EXTI_IRQ_REQUIRED    FALSE
 
 // Buttons
-//#define BTN1_PIN        GPIOA, 0
+#define BTN1_PIN        GPIOA, 0, pudPullDown
+#define BTN2_PIN        GPIOC, 13, pudPullDown
+#define BTN3_PIN        GPIOA, 1, pudPullDown
+#define BTN4_PIN        GPIOC, 14, pudPullDown
+#define BTN5_PIN        GPIOB, 5, pudPullDown
+#define BTN6_PIN        GPIOB, 6, pudPullDown
+#define BTN7_PIN        GPIOB, 7, pudPullDown
 
 // Charging
 #define CHRG_EN_PIN     GPIOC, 15

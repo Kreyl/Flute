@@ -12,6 +12,8 @@
 #include "buttons.h"
 #include "main.h"
 #include "Charger.h"
+#include "FluteSnd.h"
+#include "Sequences.h"
 #endif
 #if 1 // ======================== Variables & prototypes =======================
 // Forever
@@ -24,6 +26,20 @@ void ITask();
 
 State_t State;
 CS42L52_t Codec;
+LedSmooth_t Led{LED_BTN};
+PinInput_t PinUsbDetect(USB_DETECT_PIN, pudPullDown);
+bool PinUsbIsHigh = false;
+
+#define SONG_CNT    7
+FluteSnd_t Songs[SONG_CNT] = {
+        {"1.wav", 0},
+        {"2.wav", 0},
+        {"3.wav", 0},
+        {"4.wav", 0},
+        {"5.wav", 0},
+        {"6.wav", 0},
+        {"7.wav", 0},
+};
 
 //static enum WakeupSrc_t {wusPowerOn, wusWakeup, wusUsb} WakeupSrc;
 
@@ -40,7 +56,8 @@ int main(void) {
     Iwdg::InitAndStart(4500);
     Iwdg::DisableInDebug();
     // Setup clock frequency
-    Clk.SetCoreClk(cclk80MHz);
+//    Clk.SetCoreClk(cclk24MHz);
+    Clk.SetCoreClk(cclk48MHz);
     // 48MHz clock
     Clk.SetupSai1Qas48MhzSrc();
     Clk.UpdateFreqValues();
@@ -63,17 +80,14 @@ int main(void) {
         Flash::IwdgFrozeInStandby();
     }
 
-    // Init always
-//    LsSnsInit();
+    Led.Init();
+    PinUsbDetect.Init();
+    ButtonsInit();
+
 //    Charger.Init();
 //    bool BtnReleased = PinIsHi(BTN1_PIN);
 
-    // Init always
     TmrOneSecond.StartOrRestart();
-    // Seed pseudorandom generator with truly random seed
-    Random::TrueInit();
-    Random::SeedWithTrue();
-    Random::TrueDeinit();
 
     // Sound
     Codec.Init();
@@ -82,22 +96,18 @@ int main(void) {
     Codec.EnableSpeakerMono();
     Codec.SetupMonoStereo(Stereo);  // For wav player
     Codec.SetupSampleRate(22050); // Just default, will be replaced when changed
-    Codec.SetMasterVolume(12);
+    Codec.SetMasterVolume(0);
     Codec.SetSpeakerVolume(0); // max
     AuPlayer.Init();
 
     // Init if SD ok
     SD.Init();
     if(SD.IsReady) {
-//        AcgInit();
-//        SaberMotn.Reset();
-//        UsbMsd.Init();
+        Led.StartOrRestart(lsqOk);
+        UsbMsd.Init();
 
-        // Init saber hardware if wakeup
 //        if(WakeupSrc == wusWakeup) {
 //            Printf("Wakeup\r");
-//            // Send ShortPress evt if button already released
-//            if(BtnReleased) StateMachine(eventShortPress);
 //        }
 //        else {
 //            // Otherwise, wakeup by USB connection occured
@@ -105,10 +115,10 @@ int main(void) {
 //            EvtQMain.SendNowOrExit(EvtMsg_t(evtIdUsbConnect));
 //        }
 
-        AuPlayer.Play("alive.wav", spmSingle);
+//        AuPlayer.Play("alive.wav", spmSingle);
     } // if SD is ready
     else {
-//        LedBtn.StartOrRestart(lsqSmoothFailure);
+        Led.StartOrRestart(lsqFail);
         chThdSleepMilliseconds(3600);
 //        EnterSleep();
     }
@@ -129,28 +139,39 @@ void ITask() {
 
             case evtIdPwrOffTimeout:
                 Printf("TmrOff timeout\r");
-//                StateMachine(eventPwrOffTimeout);
                 break;
 
             case evtIdButtons:
-//                Printf("Btn %u\r", Msg.BtnEvtInfo);
-//                StateMachine(Msg.BtnEvtInfo);
+                Printf("Btn %u %u\r", Msg.BtnInfo.ID, Msg.BtnInfo.Evt);
+                if(Msg.BtnInfo.Evt == beShortPress) Songs[Msg.BtnInfo.ID - 1].Play();
+                else if(Msg.BtnInfo.Evt == beRelease) {
+                    if(ButtonsAreAllIdle()) AuPlayer.FadeOut();
+                }
                 break;
 
             // ==== Sound ====
             case evtIdAudioPlayStop:
                 Printf("Snd Done\r");
-//                if(BladeIsIdle()) StateMachine(eventSoundAndBladeOff);
                 break;
 
             case evtIdEverySecond:
 //                Printf("Second\r");
-//                PrintMemoryInfo();
                 Iwdg::Reload();
                 // Check SD
-//                if(!State.UsbConnected and !SD.IsReady) {
-//                    if(SD.Reconnect() == retvOk) Sound.StartHumAndPlayPowerOn();
-//                }
+                if(!State.UsbConnected and !SD.IsReady) {
+                    if(SD.Reconnect() == retvOk) Led.StartOrRestart(lsqOk);
+                    else Led.StartOrContinue(lsqFail);
+                }
+                // Check USB
+                if(PinUsbDetect.IsHi() and !PinUsbIsHigh) {
+                    PinUsbIsHigh = true;
+                    EvtQMain.SendNowOrExit(EvtMsg_t(evtIdUsbConnect));
+                }
+                else if(!PinUsbDetect.IsHi() and PinUsbIsHigh) {
+                    PinUsbIsHigh = false;
+                    EvtQMain.SendNowOrExit(EvtMsg_t(evtIdUsbDisconnect));
+                }
+
 //                Charger.OnSecond();
                 // Check if need to sleep
 //                if(State.Name == staSettings or State.Name == staWorking) {
@@ -169,16 +190,18 @@ void ITask() {
 //                }
                 break;
 
-#if 0 // ======= USB =======
+#if 1 // ======= USB =======
             case evtIdUsbConnect:
                 Printf("USB connect\r");
                 State.UsbConnected = true;
+                UsbMsd.Connect();
 //                StateMachine(eventUsbConnect);
                 break;
             case evtIdUsbDisconnect:
                 Printf("USB disconnect\r");
                 State.UsbConnected = false;
                 State.UsbActive = false;
+                UsbMsd.Disconnect();
 //                StateMachine(eventDisconnect);
                 break;
             case evtIdUsbReady:
@@ -271,6 +294,15 @@ void OnCmd(Shell_t *PShell) {
     if(PCmd->NameIs("Ping")) PShell->Ack(retvOk);
     else if(PCmd->NameIs("Version")) PShell->Print("%S %S\r", APP_NAME, XSTRINGIFY(BUILD_TIME));
     else if(PCmd->NameIs("mem")) PrintMemoryInfo();
+
+    else if(PCmd->NameIs("play")) {
+        int32_t v1, v2;
+        if(PCmd->GetNext<int32_t>(&v1) != retvOk) return;
+        if(PCmd->GetNext<int32_t>(&v2) != retvOk) return;
+        Codec.SetSpeakerVolume(v1); // -96...0
+        Codec.SetMasterVolume(v2); // -102...12
+        AuPlayer.Play("1/1.wav", spmSingle);
+    }
 
     else PShell->Ack(retvCmdUnknown);
 }

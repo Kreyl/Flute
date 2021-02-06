@@ -12,101 +12,109 @@
 
 class Btn_t {
 private:
-    bool IsMidOrLongPressEvtSent = false;
-    systime_t PressStartTime = 0;
-    uint32_t Indx;
+    EvtMsg_t Msg{evtIdButtons};
+    GPIO_TypeDef *PGpio;
+    uint16_t Pin;
+    PinPullUpDown_t PullUpDown;
     void SendShortPressEvt() {
-        EvtMsg_t Msg(evtIdButtons);
-//        Msg.BtnEvtInfo = (Indx == 1)? eventShortPress : eventShortPress2;
+        Msg.BtnInfo.Evt = beShortPress;
         EvtQMain.SendNowOrExit(Msg);
     }
-    void SendMidPressEvt() { // Second btn will never be here, he-he
-        EvtMsg_t Msg(evtIdButtons);
-//        Msg.BtnEvtInfo = eventMidPress;
+    void SendReleaseEvt() {
+        Msg.BtnInfo.Evt = beRelease;
         EvtQMain.SendNowOrExit(Msg);
     }
-    void SendLongPressEvt() {
-        EvtMsg_t Msg(evtIdButtons);
-//        Msg.BtnEvtInfo = (Indx == 1)? eventLongPress : eventLongPress2;
-        EvtQMain.SendNowOrExit(Msg);
-    }
+    systime_t ReleaseTime = 0;
+    bool WasReleased = false;
 public:
-    Btn_t(uint32_t Indx) : Indx(Indx) {}
+    Btn_t(uint32_t Indx, GPIO_TypeDef *PGpio, uint16_t Pin, PinPullUpDown_t PullUpDown) :
+        PGpio(PGpio), Pin(Pin), PullUpDown(PullUpDown) { Msg.BtnInfo.ID = Indx; }
 
     PinInputState_t State = pssNone;
 
-    void Update(PinInputState_t AState) {
-        State = AState;
-        switch(AState) {
+    void Init() const { PinSetupInput(PGpio, Pin, PullUpDown); }
+    bool IsHi() const { return PinIsHi(PGpio, Pin); }
+
+    void Update() {
+        if(IsHi()) {
+            if(State == pssLo or State == pssFalling) State = pssRising;
+            else State = pssHi;
+        }
+        else { // is low
+            if(State == pssHi or State == pssRising) State = pssFalling;
+            else State = pssLo;
+        }
+
+        switch(State) {
             case BTN_PRESSING_STATE:
-                IsMidOrLongPressEvtSent = false;
-                PressStartTime = chVTGetSystemTimeX(); // Start timer
+                // How long since release?
+                if(chVTTimeElapsedSinceX(ReleaseTime) > TIME_MS2I(BTN_RELEASE_MIN_DELAY_MS)) { // Long ago
+                    SendShortPressEvt();
+                }
+                WasReleased = false;
                 break;
 
             case BTN_RELEASING_STATE:
-                if(!IsMidOrLongPressEvtSent) { // Do not send evt if LongPress was already sent
-                    SendShortPressEvt();
-                }
+                ReleaseTime = chVTGetSystemTimeX(); // Start timer
+                WasReleased = true;
                 break;
 
-            case BTN_HOLDDOWN_STATE:
-                // Check if longpress occured, if not yet
-                if(!IsMidOrLongPressEvtSent and TIME_I2MS(chVTTimeElapsedSinceX(PressStartTime)) >= BTN_LONGPRESS_DELAY_MS) {
-                    IsMidOrLongPressEvtSent = true;
-                    SendLongPressEvt();
+            case BTN_IDLE_STATE:
+                // Check if release timeout occured
+                if(WasReleased) {
+                    if(chVTTimeElapsedSinceX(ReleaseTime) > TIME_MS2I(BTN_RELEASE_MIN_DELAY_MS)) { // Long ago
+                        SendReleaseEvt();
+                        WasReleased = false;
+                    }
                 }
                 break;
             default: break;
         } // switch
     }
-
-    void DisableLongpressAndRelease() {
-        IsMidOrLongPressEvtSent = true; // Do not send SHort-, Mid- and LongPress Evt
-    }
 };
 
-static Btn_t Btns[BUTTONS_CNT] = { 1, 2 };
+static Btn_t Btns[BUTTONS_CNT] = {
+        {1, BTN1_PIN},
+        {2, BTN2_PIN},
+        {3, BTN3_PIN},
+        {4, BTN4_PIN},
+        {5, BTN5_PIN},
+        {6, BTN6_PIN},
+        {7, BTN7_PIN},
+};
+
+static THD_WORKING_AREA(waBtnsThread, 256);
+__noreturn
+static void BtnsThread(void *arg) {
+    chRegSetThreadName("Btns");
+    while(true) {
+        for(auto &Btn : Btns) Btn.Update();
+        chThdSleepMilliseconds(BTN_POLL_PERIOD_MS);
+    } // while true
+}
+
+void ButtonsInit() {
+    // Init pins
+    for(auto &Btn : Btns) {
+        Btn.Init();
+        Btn.State = pssNone;
+    }
+    // Create and start thread
+    chThdCreateStatic(waBtnsThread, sizeof(waBtnsThread), NORMALPRIO, (tfunc_t)BtnsThread, NULL);
+}
 
 PinInputState_t GetBtnState(uint8_t BtnID) {
     if(BtnID >= BUTTONS_CNT) return pssNone;
     else return Btns[BtnID].State;
 }
 
-static systime_t ComboStartTime;
-static bool IsComboEvtSent = false;
-static bool WasCombo = false;
-
-void ProcessButtons(PinInputState_t State1, PinInputState_t State2) {
-//    Printf("Btns: %u %u\r", State1, State2);
-    // Check combo
-    if((State1 == BTN_HOLDDOWN_STATE or State1 == BTN_PRESSING_STATE) and (State2 == BTN_HOLDDOWN_STATE or State2 == BTN_PRESSING_STATE)) {
-        WasCombo = true;
-        // If just occured
-        if(State1 == BTN_PRESSING_STATE or State2 == BTN_PRESSING_STATE) {
-            IsComboEvtSent = false;
-            ComboStartTime = chVTGetSystemTimeX();
-        }
-        else if(State1 == BTN_HOLDDOWN_STATE or State2 == BTN_HOLDDOWN_STATE) {
-            // Check if longpress occured, if not yet
-            if(!IsComboEvtSent and TIME_I2MS(chVTTimeElapsedSinceX(ComboStartTime)) >= BTN_LONGPRESS_DELAY_MS) {
-                IsComboEvtSent = true;
-                EvtMsg_t Msg(evtIdButtons);
-//                Msg.BtnEvtInfo = eventLongBoth;
-                EvtQMain.SendNowOrExit(Msg);
-            }
+bool ButtonsAreAllIdle() {
+    bool Rslt = true;
+    for(auto &Btn : Btns) {
+        if(Btn.State != BTN_IDLE_STATE) {
+            Rslt = false;
+            break;
         }
     }
-    // Not combo, but if it was before, wait until both buttons are released
-    else if(WasCombo) {
-        if((State1 == BTN_IDLE_STATE or State1 == pssNone) and (State2 == BTN_IDLE_STATE or State2 == pssNone)) WasCombo = false;
-    }
-    // No combo
-    else {
-        Btns[0].Update(State1);
-        Btns[1].Update(State2);
-    }
-}
-
-void DisableLongpressAndRelease(uint8_t BtnID) {
-    Btns[BtnID].DisableLongpressAndRelease();
+    return Rslt;
 }
