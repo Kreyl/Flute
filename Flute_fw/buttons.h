@@ -22,7 +22,9 @@
 
 #define BUTTONS_CNT     7
 
-void ButtonsInit();
-PinInputState_t ButtonGetState(uint8_t BtnID);
+namespace Buttons {
 
-bool ButtonsAreAllIdle();
+void Init();
+bool AreAllIdle();
+
+}

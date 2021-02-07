@@ -17,7 +17,7 @@ private:
     uint16_t Pin;
     PinPullUpDown_t PullUpDown;
     void SendShortPressEvt() {
-        Msg.BtnInfo.Evt = beShortPress;
+        Msg.BtnInfo.Evt = bePress;
         EvtQMain.SendNowOrExit(Msg);
     }
     void SendReleaseEvt() {
@@ -83,32 +83,45 @@ static Btn_t Btns[BUTTONS_CNT] = {
         {7, BTN7_PIN},
 };
 
+static bool WasCombo = false;
+
 static THD_WORKING_AREA(waBtnsThread, 256);
 __noreturn
 static void BtnsThread(void *arg) {
     chRegSetThreadName("Btns");
     while(true) {
-        for(auto &Btn : Btns) Btn.Update();
+        // Check if combo
+        if(Btns[6].IsHi() and Btns[5].IsHi()) {
+            if(!WasCombo) {
+                WasCombo = true;
+                EvtMsg_t Msg{evtIdButtons};
+                Msg.BtnInfo.Evt = beCombo;
+                EvtQMain.SendNowOrExit(Msg);
+            }
+        }
+        // Not combo
+        else {
+            WasCombo = false;
+            for(auto &Btn : Btns) Btn.Update();
+        }
         chThdSleepMilliseconds(BTN_POLL_PERIOD_MS);
     } // while true
 }
 
-void ButtonsInit() {
+namespace Buttons {
+
+void Init() {
     // Init pins
     for(auto &Btn : Btns) {
         Btn.Init();
         Btn.State = pssNone;
     }
+    Btns[0].State = Btns[0].IsHi()? pssHi : pssNone;
     // Create and start thread
     chThdCreateStatic(waBtnsThread, sizeof(waBtnsThread), NORMALPRIO, (tfunc_t)BtnsThread, NULL);
 }
 
-PinInputState_t GetBtnState(uint8_t BtnID) {
-    if(BtnID >= BUTTONS_CNT) return pssNone;
-    else return Btns[BtnID].State;
-}
-
-bool ButtonsAreAllIdle() {
+bool AreAllIdle() {
     bool Rslt = true;
     for(auto &Btn : Btns) {
         if(Btn.State != BTN_IDLE_STATE) {
@@ -118,3 +131,5 @@ bool ButtonsAreAllIdle() {
     }
     return Rslt;
 }
+
+} // Namspace

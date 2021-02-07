@@ -44,7 +44,7 @@ EvtMsgQ_t<RMsg_t, RMSG_Q_LEN> MsgQ;
 #define EMSG_DATA8_CNT      7   // ID + 7 bytes = 8 = 2x DWord32
 #define EMSG_DATA16_CNT     3   // ID + 3x2bytes = 7
 
-enum BtnEvt_t {beShortPress, beLongPress, beRelease, beRepeat, beCombo, beLongCombo, beDoubleClick};
+enum BtnEvt_t {bePress, beRelease, beCombo};
 
 union EvtMsg_t {
     uint32_t DWord[2];

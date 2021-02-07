@@ -2319,11 +2319,15 @@ void Clk_t::UpdateFreqValues() {
     APB2FreqHz = AHBFreqHz >> tmp;
 
     // ==== Update prescaler in System Timer ====
-    uint32_t Psc = (SYS_TIM_CLK / OSAL_ST_FREQUENCY) - 1;
     TMR_DISABLE(STM32_ST_TIM);          // Stop counter
     uint32_t Cnt = STM32_ST_TIM->CNT;   // Save current time
+    uint32_t dier = STM32_ST_TIM->DIER; // Save interrupts
+    STM32_ST_TIM->DIER = 0;             // Disable interrupts
+    // Change prescaler
+    uint32_t Psc = (SYS_TIM_CLK / OSAL_ST_FREQUENCY) - 1;
     STM32_ST_TIM->PSC = Psc;
-    TMR_GENERATE_UPD(STM32_ST_TIM);
+    TMR_GENERATE_UPD(STM32_ST_TIM); // Reload prescaler counter
+    STM32_ST_TIM->DIER = dier;          // Restore interrupts
     STM32_ST_TIM->CNT = Cnt;            // Restore time
     TMR_ENABLE(STM32_ST_TIM);
 }

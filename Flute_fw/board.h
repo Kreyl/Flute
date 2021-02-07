@@ -47,7 +47,7 @@
 
 // Charging
 #define CHRG_EN_PIN     GPIOC, 15
-#define IS_CHARGING     GPIOC, 2, pudPullUp
+#define IS_CHARGING_PIN GPIOC, 2
 
 // UART
 #define UART_GPIO       GPIOA
@@ -68,6 +68,7 @@
 #define AU_SAI_A        SAI1_Block_A
 #define AU_SAI_B        SAI1_Block_B
 #define AU_SAI_RccEn()  RCC->APB2ENR |= RCC_APB2ENR_SAI1EN
+#define AU_SAI_RccDis() RCC->APB2ENR &= ~RCC_APB2ENR_SAI1EN
 
 // Acc
 #define ACG_IRQ_PIN     GPIOB, 2

@@ -165,8 +165,6 @@ void CS42L52_t::Init() {
     // Remove reset
     PinRst.SetHi();
     chThdSleepMilliseconds(18);
-    // Init i2c
-    AU_i2c.Init();
     AU_i2c.CheckAddress(0x4A); // Otherwise it does not work.
 //    AU_i2c.ScanBus();
     // Check if connected
@@ -268,9 +266,9 @@ void CS42L52_t::Deinit() {
         PDmaTx = nullptr;
     }
     AU_SAI_A->CR2 = SAI_xCR2_FFLUSH;
-//    AU_i2c.Deinit();
+    Clk.DisableMCO();
     PinRst.SetLo();
-//    AU_SAI_RccDis();
+    AU_SAI_RccDis();
     IsOn = false;
 }
 
@@ -412,9 +410,26 @@ void CS42L52_t::SetupNoiseGate(EnableDisable_t En, uint8_t Threshold, uint8_t De
 
 #if AU_BATMON_ENABLE
 uint32_t CS42L52_t::GetBatteryVmv() {
+//    if(!IsOn) {
+//        PinRst.SetHi();
+//        Clk.EnableMCO(mcoHSE, mcoDiv1); // Master clock output
+//        chThdSleepMilliseconds(18);
+//        AU_i2c.CheckAddress(0x4A); // Otherwise it does not work.
+//        WriteReg(CS_R_PWR_CTRL1, 0b11111110); // PwrCtrl 1: Power on codec only
+//        WriteReg(0x2F, 0b01001000); // Bat compensation dis, VP monitor en
+//        chThdSleepMilliseconds(999);
+//    }
+
     uint8_t b;
     ReadReg(0x30, &b);
-    return ((uint32_t)b * 10 * AU_VA_mv) / 633;
+    uint32_t Rslt = ((uint32_t)b * 10UL * AU_VA_mv) / 633UL;
+
+//    if(!IsOn) {
+//        Clk.DisableMCO();
+//        PinRst.SetLo();
+//    }
+
+    return Rslt;
 }
 #endif
 

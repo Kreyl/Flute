@@ -13,7 +13,7 @@
 
 #define CS42_I2C_ADDR       0x4A
 #define AU_BATMON_ENABLE    TRUE
-#define AU_VA_mv            2500    // Required for battery voltage calculation
+#define AU_VA_mv            2500UL    // Required for battery voltage calculation
 
 enum AuBeepFreq_t {abfC4=0b0000, abfC5=0b0001, abfD5=0b0010, abfE5=0b0011, abfF5=0b0100, abfG5=0b0101, abfA5=0b0110,
     abfB5=0b0111, abfC6=0b1000, abfD6=0b1001, abfE6=0b1010, abfF6=0b1011, abfG6=0b1100, abfA6=0b1101, abfB6=0b1110, abfC7=0b1111

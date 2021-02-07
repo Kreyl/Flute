@@ -31,7 +31,7 @@ const LedSmoothChunk_t lsqCharging[] = {
         {csGoto, 0}
 };
 
-const LedSmoothChunk_t lsqChargingDone[] = {
+const LedSmoothChunk_t lsqNotCharging[] = {
         {csSetup, 360, LED_TOP_BRIGHTNESS},
         {csEnd}
 };
