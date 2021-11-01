@@ -41,7 +41,7 @@ FluteSnd_t Songs[SONG_CNT] = {
         {"4.wav", 0},
         {"5.wav", 0},
         {"6.wav", 0},
-        {"7.wav", 10},
+        {"7.wav", 0},
 };
 
 static void Standby();
@@ -56,7 +56,7 @@ static Charger_t Charger;
 #endif
 
 int main(void) {
-#if 0 // ==== Get source of wakeup ====
+#if 1 // ==== Get source of wakeup ====
     rccEnablePWRInterface(FALSE);
     if(Sleep::WasInStandby()) {
         // Is it button?
