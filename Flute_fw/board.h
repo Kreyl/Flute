@@ -109,6 +109,9 @@
 #define SD_CLK          GPIOC, 12, omPushPull, pudNone,   SD_AF
 #define SD_CMD          GPIOD,  2, omPushPull, pudPullUp, SD_AF
 
+// Radio: SPI, PGpio, Sck, Miso, Mosi, Cs, Gdo0
+#define CC_Setup0       SPI1, GPIOA, 5,6,7, GPIOA,4, GPIOA,3
+
 #endif // GPIO
 
 #if 1 // =========================== I2C =======================================

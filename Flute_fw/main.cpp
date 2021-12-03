@@ -14,6 +14,7 @@
 #include "FluteSnd.h"
 #include "Sequences.h"
 #include "kl_i2c.h"
+#include "radio_lvl1.h"
 #endif
 #if 1 // ======================== Variables & prototypes =======================
 // Forever
@@ -42,6 +43,16 @@ FluteSnd_t Songs[SONG_CNT] = {
         {"5.wav", 0},
         {"6.wav", 0},
         {"7.wav", 0},
+};
+
+Color_t Clrs[7] = {
+        clGreen,
+        clBlack,
+        clBlue,
+        clCyan,
+        clMagenta,
+        clRed,
+        clYellow
 };
 
 static void Standby();
@@ -128,6 +139,8 @@ int main(void) {
         EnterSleep();
     }
 
+    Radio.Init();
+
     // Main cycle
     ITask();
 }
@@ -152,16 +165,20 @@ void ITask() {
                     Resume();
                     IsPlayingIntro = false;
                     Songs[Msg.BtnInfo.ID - 1].Play();
+                    Radio.ClrToTx = Clrs[Msg.BtnInfo.ID - 1];
+                    Radio.MustTx = true;
                 }
                 else if(Msg.BtnInfo.Evt == beRelease) {
                     if(IsPlayingIntro) IsPlayingIntro = false;
                     else if(Buttons::AreAllIdle()) AuPlayer.FadeOut();
+                    Radio.MustTx = false;
                 }
                 else if(Msg.BtnInfo.Evt == beCombo) {
                     Resume();
                     IsPlayingIntro = true;
                     MustSleep = true;
                     AuPlayer.Play("Sleep.wav", spmSingle);
+                    Radio.MustTx = false;
                 }
                 break;
 
@@ -200,7 +217,7 @@ void ITask() {
 //                    Printf("%u\r", Battery_mV);
                     if(Battery_mV < BATTERY_DEAD_mv) {
                         Printf("Discharged: %u\r", Battery_mV);
-                        EnterSleep();
+//                        EnterSleep();
                     }
                 }
                 break;
