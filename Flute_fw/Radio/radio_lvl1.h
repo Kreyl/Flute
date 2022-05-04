@@ -76,7 +76,8 @@ union rPkt_t {
     uint32_t DW32[2];
     struct {
         uint32_t Sign;
-        uint8_t R, G, B, W;
+        uint8_t R, G, B;
+        uint8_t BtnIndx;
     } __attribute__((__packed__));
     rPkt_t& operator = (const rPkt_t &Right) {
         DW32[0] = Right.DW32[0];
@@ -202,6 +203,7 @@ public:
 
     bool MustTx = false;
     Color_t ClrToTx = clGreen;
+    uint8_t BtnIndx = 0;
     uint8_t Init();
     // Inner use
     void ITask();

@@ -30,7 +30,7 @@ cc1101_t CC(CC_Setup0);
 rLevel1_t Radio;
 int8_t Rssi;
 
-extern EvtMsgQ_t<EvtMsg_t, MAIN_EVT_Q_LEN> EvtQMain;
+//extern EvtMsgQ_t<EvtMsg_t, MAIN_EVT_Q_LEN> EvtQMain;
 
 #if 1 // ================================ Task =================================
 static THD_WORKING_AREA(warLvl1Thread, 128);
@@ -48,6 +48,7 @@ void rLevel1_t::ITask() {
             PktTx.R = ClrToTx.R;
             PktTx.G = ClrToTx.G;
             PktTx.B = ClrToTx.B;
+            PktTx.BtnIndx = BtnIndx;
             PktTx.Sign = 0xCA115EA1;
             CC.Recalibrate();
             CC.Transmit(&PktTx, RPKT_LEN);

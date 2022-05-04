@@ -166,6 +166,7 @@ void ITask() {
                     IsPlayingIntro = false;
                     Songs[Msg.BtnInfo.ID - 1].Play();
                     Radio.ClrToTx = Clrs[Msg.BtnInfo.ID - 1];
+                    Radio.BtnIndx = Msg.BtnInfo.ID - 1;
                     Radio.MustTx = true;
                 }
                 else if(Msg.BtnInfo.Evt == beRelease) {
@@ -260,7 +261,7 @@ void Resume() {
     Codec.EnableSpeakerMono();
     Codec.SetupMonoStereo(Stereo);  // For wav player
     Codec.SetupSampleRate(22050); // Just default, will be replaced when changed
-    Codec.SetMasterVolume(5); // 12 is max
+    Codec.SetMasterVolume(9); // 12 is max
     Codec.SetSpeakerVolume(0); // 0 is max
 
     IsStandby = false;
