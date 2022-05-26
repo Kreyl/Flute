@@ -204,7 +204,7 @@ public:
     bool MustTx = false;
     Color_t ClrToTx = clGreen;
     uint8_t BtnIndx = 0;
-    uint8_t Init();
+    uint8_t Init(uint32_t RPwrId);
     // Inner use
     void ITask();
 };

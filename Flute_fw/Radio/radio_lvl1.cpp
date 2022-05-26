@@ -64,7 +64,7 @@ void rLevel1_t::ITask() {
 #endif // task
 
 #if 1 // ============================
-uint8_t rLevel1_t::Init() {
+uint8_t rLevel1_t::Init(uint32_t RPwrId) {
 #ifdef DBG_PINS
     PinSetupOut(DBG_GPIO1, DBG_PIN1, omPushPull);
     PinSetupOut(DBG_GPIO2, DBG_PIN2, omPushPull);
@@ -75,10 +75,10 @@ uint8_t rLevel1_t::Init() {
         CC.SetPktSize(RPKT_LEN);
         CC.DoIdleAfterTx();
         CC.SetChannel(RCHNL_EACH_OTH);
-        CC.SetTxPower(CC_Pwr0dBm);
+        CC.SetTxPower(PwrTable[RPwrId]);
         CC.SetBitrate(CCBitrate100k);
 //        CC.EnterPwrDown();
-
+        Printf("RPwr: %u\r", RPwrId);
         // Thread
         chThdCreateStatic(warLvl1Thread, sizeof(warLvl1Thread), HIGHPRIO, (tfunc_t)rLvl1Thread, NULL);
         return retvOk;

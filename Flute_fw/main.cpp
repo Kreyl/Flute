@@ -90,7 +90,7 @@ int main(void) {
     Iwdg::InitAndStart(4500);
     Iwdg::DisableInDebug();
 
-#if 1 // ==== Iwdg, Clk, Os, EvtQ, Uart ====
+#if 1 // ==== Clk, Os, EvtQ, Uart ====
     // Setup clock frequency
     Clk.SetCoreClk(cclk48MHz);
     // 48MHz clock
@@ -119,16 +119,30 @@ int main(void) {
     PinUsbDetect.Init();
     Buttons::Init();
     Charger.Init();
-    AuPlayer.Init();
 
     TmrOneSecond.StartOrRestart();
 
-    SD.Init();
     AU_i2c.Init();
-    Resume();
+
+    Codec.Init();
+    Codec.SetSpeakerVolume(-96);    // To remove speaker pop at power on
+    Codec.DisableHeadphones();
+    Codec.EnableSpeakerMono();
+    Codec.SetupMonoStereo(Stereo);  // For wav player
+    Codec.SetupSampleRate(22050); // Just default, will be replaced when changed
+    Codec.SetMasterVolume(9); // 12 is max
+    Codec.SetSpeakerVolume(0); // 0 is max
+    AuPlayer.Init();
+
+    SD.Init();
+
+    uint32_t RPwrId = 5;
 
     // Init if SD ok
     if(SD.IsReady) {
+        if(ini::Read<uint32_t>("Settings.ini", "Radio", "Power", &RPwrId) != retvOk) RPwrId = 5;
+        if(RPwrId > 11) RPwrId = 11;
+
         Led.StartOrRestart(lsqOk);
         UsbMsd.Init();
         AuPlayer.Play("WakeUp.wav", spmSingle);
@@ -139,7 +153,7 @@ int main(void) {
         EnterSleep();
     }
 
-    Radio.Init();
+    Radio.Init(RPwrId);
 
     // Main cycle
     ITask();
@@ -249,35 +263,14 @@ void ITask() {
 void Resume() {
     if(!IsStandby) return;
     Printf("Resume\r");
-    // Clock
-    Clk.SetCoreClk(cclk48MHz);
-    Clk.SetupSai1Qas48MhzSrc();
-    Clk.UpdateFreqValues();
-    Clk.PrintFreqs();
-    // Sound
-    Codec.Init();
-    Codec.SetSpeakerVolume(-96);    // To remove speaker pop at power on
-    Codec.DisableHeadphones();
-    Codec.EnableSpeakerMono();
-    Codec.SetupMonoStereo(Stereo);  // For wav player
-    Codec.SetupSampleRate(22050); // Just default, will be replaced when changed
-    Codec.SetMasterVolume(9); // 12 is max
-    Codec.SetSpeakerVolume(0); // 0 is max
+    Codec.Resume();
 
     IsStandby = false;
 }
 
 void Standby() {
     Printf("Standby\r");
-    // Sound
-    Codec.Deinit();
-    // Clock
-    Clk.SwitchToMSI();
-    Clk.DisablePLL();
-    Clk.DisableSai1();
-
-    Clk.UpdateFreqValues();
-    Clk.PrintFreqs();
+    Codec.Standby();
     IsStandby = true;
 }
 
