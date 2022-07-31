@@ -25,6 +25,5 @@
 namespace Buttons {
 
 void Init();
-bool AreAllIdle();
 
 }

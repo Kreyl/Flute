@@ -44,8 +44,6 @@ EvtMsgQ_t<RMsg_t, RMSG_Q_LEN> MsgQ;
 #define EMSG_DATA8_CNT      7   // ID + 7 bytes = 8 = 2x DWord32
 #define EMSG_DATA16_CNT     3   // ID + 3x2bytes = 7
 
-enum BtnEvt_t {bePress, beRelease, beCombo};
-
 union EvtMsg_t {
     uint32_t DWord[2];
     struct {
@@ -55,10 +53,7 @@ union EvtMsg_t {
                 int32_t Value;
                 uint8_t ValueID;
             } __attribute__((__packed__));
-            struct {
-                uint8_t ID;
-                BtnEvt_t Evt;
-            } __attribute__((__packed__)) BtnInfo;
+            uint8_t BtnPressedMask;
         } __attribute__((__packed__));
         uint8_t ID;
     } __attribute__((__packed__));

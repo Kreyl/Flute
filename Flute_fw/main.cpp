@@ -11,7 +11,6 @@
 #include "usb_msd.h"
 #include "buttons.h"
 #include "Charger.h"
-#include "FluteSnd.h"
 #include "Sequences.h"
 #include "kl_i2c.h"
 #include "radio_lvl1.h"
@@ -33,27 +32,6 @@ bool IsPlayingIntro = true, PinUsbIsHigh = false, UsbConnected = false, MustSlee
 
 #define BATTERY_LOW_mv  3200
 #define BATTERY_DEAD_mv 3300
-
-#define SONG_CNT    7
-FluteSnd_t Songs[SONG_CNT] = {
-        {"1.wav", 0},
-        {"2.wav", 0},
-        {"3.wav", 0},
-        {"4.wav", 0},
-        {"5.wav", 0},
-        {"6.wav", 0},
-        {"7.wav", 0},
-};
-
-Color_t Clrs[7] = {
-        clGreen,
-        clBlack,
-        clBlue,
-        clCyan,
-        clMagenta,
-        clRed,
-        clYellow
-};
 
 static void Standby();
 static void Resume();
@@ -175,25 +153,66 @@ void ITask() {
 
             case evtIdButtons:
 //                Printf("Btn %u %u\r", Msg.BtnInfo.ID, Msg.BtnInfo.Evt);
-                if(Msg.BtnInfo.Evt == bePress) {
-                    Resume();
-                    IsPlayingIntro = false;
-                    Songs[Msg.BtnInfo.ID - 1].Play();
-                    Radio.ClrToTx = Clrs[Msg.BtnInfo.ID - 1];
-                    Radio.BtnIndx = Msg.BtnInfo.ID - 1;
-                    Radio.MustTx = true;
-                }
-                else if(Msg.BtnInfo.Evt == beRelease) {
+                Resume();
+                // Check if all buttons released
+                if(Msg.BtnPressedMask == 0) {
                     if(IsPlayingIntro) IsPlayingIntro = false;
-                    else if(Buttons::AreAllIdle()) AuPlayer.FadeOut();
+                    else AuPlayer.FadeOut();
                     Radio.MustTx = false;
                 }
-                else if(Msg.BtnInfo.Evt == beCombo) {
-                    Resume();
-                    IsPlayingIntro = true;
-                    MustSleep = true;
-                    AuPlayer.Play("Sleep.wav", spmSingle);
-                    Radio.MustTx = false;
+                // Something pressed
+                else {
+                    // Check if need to sleep: 5 & 6 pressed
+                    if(Msg.BtnPressedMask & ((1<<5) | (1<<6))) {
+                        IsPlayingIntro = true;
+                        MustSleep = true;
+                        AuPlayer.Play("Sleep.wav", spmSingle);
+                        Radio.MustTx = false;
+                    }
+                    // Something else pressed, play what needed
+                    else {
+                        IsPlayingIntro = false;
+                        const char *Filename;
+                        switch(Msg.BtnPressedMask) {
+                            // Single button
+                            case 0: Filename = "1.wav"; break;
+                            case 1: Filename = "2.wav"; break;
+                            case 2: Filename = "3.wav"; break;
+                            case 3: Filename = "4.wav"; break;
+                            case 4: Filename = "5.wav"; break;
+                            // Combo with 6
+                            case ((1<<5) | (1<<0)): Filename = "6.wav"; break;
+                            case ((1<<5) | (1<<1)): Filename = "7.wav"; break;
+                            case ((1<<5) | (1<<2)): Filename = "8.wav"; break;
+                            case ((1<<5) | (1<<3)): Filename = "9.wav"; break;
+                            case ((1<<5) | (1<<4)): Filename = "10.wav"; break;
+                            // Combo with 7
+                            case ((1<<6) | (1<<0)): Filename = "11.wav"; break;
+                            case ((1<<6) | (1<<1)): Filename = "12.wav"; break;
+                            case ((1<<6) | (1<<2)): Filename = "13.wav"; break;
+                            case ((1<<6) | (1<<3)): Filename = "14.wav"; break;
+                            case ((1<<6) | (1<<4)): Filename = "15.wav"; break;
+                            default: Filename = "1.wav"; break;
+                        }
+                        AuPlayer.Play(Filename, spmSingle);
+                        // Color
+                        Color_t Clr;
+                        switch(Msg.BtnPressedMask) {
+                            // Single button
+                            case 0: Clr = clGreen; break;
+                            case 1: Clr = clBlack; break;
+                            case 2: Clr = clBlue; break;
+                            case 3: Clr = clCyan; break;
+                            case 4: Clr = clMagenta; break;
+                            // Combo with 6
+                            case ((1<<5) | (1<<0)): Clr = clRed; break;
+                            case ((1<<5) | (1<<1)): Clr = clYellow; break;
+                            default: Clr = clBlack;
+                        }
+                        Radio.ClrToTx = Clr;
+                        Radio.BtnIndx = Msg.BtnPressedMask;
+                        Radio.MustTx = true;
+                    }
                 }
                 break;
 
