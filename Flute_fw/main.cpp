@@ -166,7 +166,7 @@ void ITask() {
                 break;
 
             case evtIdButtons:
-                Printf("Btn 0x%02X; %u %u\r", Msg.BtnPressedMask, IsPlayingIntro, AuPlayer.IsPlayingNow());
+                Printf("Btn 0x%02X\r", Msg.BtnPressedMask);
                 Resume();
                 // Check if all buttons released
                 if(Msg.BtnPressedMask == 0) {
@@ -176,7 +176,6 @@ void ITask() {
                 }
                 // Something pressed
                 else if(!(IsPlayingIntro and AuPlayer.IsPlayingNow())) { // Ignore btn if playing intro after pwron
-                    Printf("Here\r");
                     IsPlayingIntro = false;
                     uint8_t Msk = Msg.BtnPressedMask; // To make things shorter
                     // Check if need to sleep: 6 & 7 pressed
@@ -184,6 +183,12 @@ void ITask() {
                         MustSleep = true;
                         AuPlayer.Play("Sleep.wav", spmSingle);
                         Radio.MustTx = false;
+                    }
+                    // Check if need to send "Stop" to speaking stone
+                    else if(Msk == ((1<<1) | (1<<0))) {
+                        Radio.ClrToTx = clBlack;
+                        Radio.BtnIndx = 0xFF; // Means Stop
+                        Radio.MustTx = true;
                     }
                     // Something else pressed, play what needed
                     else {
@@ -243,8 +248,8 @@ void ITask() {
                     uint32_t Battery_mV = Codec.GetBatteryVmv();
 //                    Printf("%u\r", Battery_mV);
                     if(Battery_mV < BATTERY_DEAD_mv) {
-//                        Printf("Discharged: %u\r", Battery_mV);
-//                        EnterSleep();
+                        Printf("Discharged: %u\r", Battery_mV);
+                        EnterSleep();
                     }
                 }
                 break;
