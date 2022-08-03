@@ -42,6 +42,18 @@ static TmrKL_t TmrOff {TIME_S2I(18), evtIdPwrOffTimeout, tktOneShot};
 static TmrKL_t TmrOneSecond {TIME_MS2I(999), evtIdEverySecond, tktPeriodic}; // Measure battery periodically
 
 static Charger_t Charger;
+
+#define FNAME_CNT   15
+const char *Filenames[FNAME_CNT] = {
+        "1.wav", "2.wav", "3.wav", "4.wav", "5.wav",
+        "6.wav", "7.wav", "8.wav", "9.wav", "10.wav",
+        "11.wav", "12.wav", "13.wav", "14.wav", "15.wav"
+};
+const Color_t Colors[FNAME_CNT] = {
+        clGreen, clBlack, clBlue, clCyan, clMagenta,
+        clRed, clYellow, clGreen, clCyan, clBlue,
+        clGreen, clBlack, clBlue, clCyan, clMagenta,
+};
 #endif
 
 int main(void) {
@@ -124,6 +136,8 @@ int main(void) {
         Led.StartOrRestart(lsqOk);
         UsbMsd.Init();
         AuPlayer.Play("WakeUp.wav", spmSingle);
+        IsPlayingIntro = true;
+        chThdSleepMilliseconds(99); // Allow it to start
     } // if SD is ready
     else {
         Led.StartOrRestart(lsqFail);
@@ -152,66 +166,45 @@ void ITask() {
                 break;
 
             case evtIdButtons:
-//                Printf("Btn %u %u\r", Msg.BtnInfo.ID, Msg.BtnInfo.Evt);
+                Printf("Btn 0x%02X; %u %u\r", Msg.BtnPressedMask, IsPlayingIntro, AuPlayer.IsPlayingNow());
                 Resume();
                 // Check if all buttons released
                 if(Msg.BtnPressedMask == 0) {
-                    if(IsPlayingIntro) IsPlayingIntro = false;
+                    if(IsPlayingIntro) IsPlayingIntro = false; // Ignore btn release after pwron
                     else AuPlayer.FadeOut();
                     Radio.MustTx = false;
                 }
                 // Something pressed
-                else {
-                    // Check if need to sleep: 5 & 6 pressed
-                    if(Msg.BtnPressedMask & ((1<<5) | (1<<6))) {
-                        IsPlayingIntro = true;
+                else if(!(IsPlayingIntro and AuPlayer.IsPlayingNow())) { // Ignore btn if playing intro after pwron
+                    Printf("Here\r");
+                    IsPlayingIntro = false;
+                    uint8_t Msk = Msg.BtnPressedMask; // To make things shorter
+                    // Check if need to sleep: 6 & 7 pressed
+                    if(Msk == ((1<<5) | (1<<6))) {
                         MustSleep = true;
                         AuPlayer.Play("Sleep.wav", spmSingle);
                         Radio.MustTx = false;
                     }
                     // Something else pressed, play what needed
                     else {
-                        IsPlayingIntro = false;
-                        const char *Filename;
-                        switch(Msg.BtnPressedMask) {
-                            // Single button
-                            case 0: Filename = "1.wav"; break;
-                            case 1: Filename = "2.wav"; break;
-                            case 2: Filename = "3.wav"; break;
-                            case 3: Filename = "4.wav"; break;
-                            case 4: Filename = "5.wav"; break;
-                            // Combo with 6
-                            case ((1<<5) | (1<<0)): Filename = "6.wav"; break;
-                            case ((1<<5) | (1<<1)): Filename = "7.wav"; break;
-                            case ((1<<5) | (1<<2)): Filename = "8.wav"; break;
-                            case ((1<<5) | (1<<3)): Filename = "9.wav"; break;
-                            case ((1<<5) | (1<<4)): Filename = "10.wav"; break;
-                            // Combo with 7
-                            case ((1<<6) | (1<<0)): Filename = "11.wav"; break;
-                            case ((1<<6) | (1<<1)): Filename = "12.wav"; break;
-                            case ((1<<6) | (1<<2)): Filename = "13.wav"; break;
-                            case ((1<<6) | (1<<3)): Filename = "14.wav"; break;
-                            case ((1<<6) | (1<<4)): Filename = "15.wav"; break;
-                            default: Filename = "1.wav"; break;
+                        int8_t Indx = -1;
+                        // Get lesser button
+                        if     (Msk & (1<<0)) Indx = 0;
+                        else if(Msk & (1<<1)) Indx = 1;
+                        else if(Msk & (1<<2)) Indx = 2;
+                        else if(Msk & (1<<3)) Indx = 3;
+                        else if(Msk & (1<<4)) Indx = 4;
+                        if(Indx >= 0) { // Do nothing if no lesser button is pressed
+                            // Get combo
+                            if(Msk & (1<<5)) Indx += 5; // Combo with 6
+                            else if(Msk & (1<<6)) Indx += 10; // Combo with 7
+                           // Play
+                            AuPlayer.Play(Filenames[Indx], spmSingle);
+                            // Radio
+                            Radio.ClrToTx = Colors[Indx];
+                            Radio.BtnIndx = Indx;
+                            Radio.MustTx = true;
                         }
-                        AuPlayer.Play(Filename, spmSingle);
-                        // Color
-                        Color_t Clr;
-                        switch(Msg.BtnPressedMask) {
-                            // Single button
-                            case 0: Clr = clGreen; break;
-                            case 1: Clr = clBlack; break;
-                            case 2: Clr = clBlue; break;
-                            case 3: Clr = clCyan; break;
-                            case 4: Clr = clMagenta; break;
-                            // Combo with 6
-                            case ((1<<5) | (1<<0)): Clr = clRed; break;
-                            case ((1<<5) | (1<<1)): Clr = clYellow; break;
-                            default: Clr = clBlack;
-                        }
-                        Radio.ClrToTx = Clr;
-                        Radio.BtnIndx = Msg.BtnPressedMask;
-                        Radio.MustTx = true;
                     }
                 }
                 break;
@@ -250,7 +243,7 @@ void ITask() {
                     uint32_t Battery_mV = Codec.GetBatteryVmv();
 //                    Printf("%u\r", Battery_mV);
                     if(Battery_mV < BATTERY_DEAD_mv) {
-                        Printf("Discharged: %u\r", Battery_mV);
+//                        Printf("Discharged: %u\r", Battery_mV);
 //                        EnterSleep();
                     }
                 }
