@@ -5,7 +5,8 @@
  *      Author: Kreyl
  */
 
-#pragma once
+#ifndef KL_FS_UTILS_H__
+#define KL_FS_UTILS_H__
 
 #include "ff.h"
 #include "kl_lib.h"
@@ -189,3 +190,5 @@ void WriteInt32(FIL *PFile, const char *AKey, const int32_t AValue);
 void WriteNewline(FIL *PFile);
 
 } // namespace
+
+#endif //KL_FS_UTILS_H__

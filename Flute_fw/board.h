@@ -5,7 +5,8 @@
  *      Author: Kreyl
  */
 
-#pragma once
+#ifndef BOARD_H__
+#define BOARD_H__
 
 // ==== General ====
 #define APP_NAME            "Flute"
@@ -191,3 +192,5 @@
     uartclkHSI // Use independent clock
 
 #endif
+
+#endif //BOARD_H__

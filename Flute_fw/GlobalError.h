@@ -5,6 +5,9 @@
  *      Author: Kreyl
  */
 
-#pragma once
+#ifndef GLOBALERROR_H__
+#define GLOBALERROR_H__
 
 void CriticalError(const char* Reason);
+
+#endif //GLOBALERROR_H__

@@ -5,7 +5,8 @@
  *      Author: Kreyl
  */
 
-#pragma once
+#ifndef ACG_LSM6DS3_DEFINS_H__
+#define ACG_LSM6DS3_DEFINS_H__
 
 #define ACG_DMA_TX_MODE \
     STM32_DMA_CR_CHSEL(ACG_DMA_CHNL) |                    \
@@ -101,3 +102,5 @@ typedef enum {
     LSM6DS3_ACC_GYRO_ODR_G_1660Hz        = 0x80,
 } LSM6DS3_ACC_GYRO_ODR_G_t;
 
+
+#endif //ACG_LSM6DS3_DEFINS_H__

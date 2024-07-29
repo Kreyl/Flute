@@ -5,7 +5,8 @@
  *      Author: layst
  */
 
-#pragma once
+#ifndef CHARGER_H__
+#define CHARGER_H__
 
 #include "Sequences.h"
 
@@ -81,3 +82,5 @@ public:
         } // switch
     }
 };
+
+#endif //CHARGER_H__

@@ -5,7 +5,8 @@
  *      Author: Kreyl
  */
 
-#pragma once
+#ifndef USB_MSD_H__
+#define USB_MSD_H__
 
 #include "hal.h"
 #include "scsi.h"
@@ -86,3 +87,5 @@ public:
 };
 
 extern UsbMsd_t UsbMsd;
+
+#endif //USB_MSD_H__

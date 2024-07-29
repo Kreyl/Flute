@@ -5,7 +5,8 @@
  *      Author: Kreyl
  */
 
-#pragma once
+#ifndef KL_USB_DEFINS_H__
+#define KL_USB_DEFINS_H__
 
 struct SetupPkt_t {
     union {
@@ -33,3 +34,5 @@ struct SetupPkt_t {
 #define RCPT_INTERFACE  1
 #define RCPT_ENDPOINT   2
 #define RCPT_OTHER      3
+
+#endif //KL_USB_DEFINS_H__

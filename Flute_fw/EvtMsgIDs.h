@@ -5,7 +5,8 @@
  *      Author: Kreyl
  */
 
-#pragma once
+#ifndef EVTMSGIDS_H__
+#define EVTMSGIDS_H__
 
 enum EvtMsgId_t {
     evtIdNone = 0, // Always
@@ -29,3 +30,5 @@ enum EvtMsgId_t {
     evtIdAcc,
     evtIdPwrOffTimeout,
 };
+
+#endif //EVTMSGIDS_H__

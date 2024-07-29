@@ -5,7 +5,8 @@
  *      Author: Kreyl
  */
 
-#pragma once
+#ifndef KL_JSON_H__
+#define KL_JSON_H__
 
 #include "kl_lib.h"
 #include "color.h"
@@ -102,3 +103,5 @@ public:
 
     ~JsonParser_t();
 };
+
+#endif //KL_JSON_H__

@@ -5,7 +5,8 @@
  *      Author: Kreyl
  */
 
-#pragma once
+#ifndef DESCRIPTORS_MSD_H__
+#define DESCRIPTORS_MSD_H__
 
 #include "ch.h"
 #include "hal.h"
@@ -27,3 +28,5 @@ const USBDescriptor *GetDescriptor(USBDriver *usbp, uint8_t dtype, uint8_t dinde
 #ifdef __cplusplus
 }
 #endif
+
+#endif //DESCRIPTORS_MSD_H__

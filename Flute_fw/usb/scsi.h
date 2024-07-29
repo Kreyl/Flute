@@ -5,7 +5,8 @@
  *      Author: g.kruglov
  */
 
-#pragma once
+#ifndef SCSI_H__
+#define SCSI_H__
 
 #include "inttypes.h"
 
@@ -166,3 +167,5 @@ extern const uint8_t Mode_Sense6_data[MODE_SENSE6_DATA_SZ];
 /** SCSI Additional Sense Qualifier Code to indicate that an operation is currently in progress. */
 #define SCSI_ASENSEQ_OPERATION_IN_PROGRESS             0x07
 #endif
+
+#endif //SCSI_H__

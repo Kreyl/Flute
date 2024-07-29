@@ -5,7 +5,8 @@
  *      Author: Kreyl
  */
 
-#pragma once
+#ifndef SEQUENCES_H__
+#define SEQUENCES_H__
 
 #include "ChunkTypes.h"
 
@@ -41,3 +42,5 @@ const LedSmoothChunk_t lsqOff[] = {
         {csSetup, 0, 0},
         {csEnd}
 };
+
+#endif //SEQUENCES_H__

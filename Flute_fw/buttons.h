@@ -5,7 +5,8 @@
  *      Author: kreyl
  */
 
-#pragma once
+#ifndef BUTTONS_H__
+#define BUTTONS_H__
 
 #include "hal.h"
 #include "kl_lib.h"
@@ -27,3 +28,5 @@ namespace Buttons {
 void Init();
 
 }
+
+#endif //BUTTONS_H__

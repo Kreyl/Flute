@@ -5,7 +5,8 @@
  *      Author: Kreyl
  */
 
-#pragma once
+#ifndef MEM_MSD_GLUE_H__
+#define MEM_MSD_GLUE_H__
 
 #include "kl_sd.h"
 
@@ -16,3 +17,5 @@ extern SDCDriver SDCD1;
 
 uint8_t MSDRead(uint32_t BlockAddress, uint8_t *Ptr, uint32_t BlocksCnt);
 uint8_t MSDWrite(uint32_t BlockAddress, uint8_t *Ptr, uint32_t BlocksCnt);
+
+#endif //MEM_MSD_GLUE_H__

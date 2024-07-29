@@ -5,7 +5,8 @@
  *      Author: Kreyl
  */
 
-#pragma once
+#ifndef ACG_LSM6DS3_H__
+#define ACG_LSM6DS3_H__
 
 #include "kl_lib.h"
 #include "shell.h"
@@ -20,3 +21,5 @@ struct AccSpd_t {
 void AcgInit();
 
 extern AccSpd_t AccSpd;
+
+#endif //ACG_LSM6DS3_H__
