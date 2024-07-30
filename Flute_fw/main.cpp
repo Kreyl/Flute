@@ -50,6 +50,15 @@ const char *Filenames[FNAME_CNT] = {
         "11.wav", "12.wav", "13.wav", "14.wav", "15.wav",
         "16.wav", "17.wav", "18.wav", "19.wav", "20.wav"
 };
+#define BTN1                        (1UL<<0)
+#define BTN2                        (1UL<<1)
+#define BTN3                        (1UL<<2)
+#define BTN4                        (1UL<<3)
+#define BTN5                        (1UL<<4)
+#define BTN6                        (1UL<<5)
+#define BTN7                        (1UL<<6)
+TmrKL_t TmrDoFade{TIME_MS2I(999), evtIdDoFade, tktOneShot};
+int32_t PrevIndx = -1;
 #endif
 
 int main(void) {
@@ -142,6 +151,64 @@ int main(void) {
     ITask();
 }
 
+void OnNewBtnMsk(uint32_t Msk) {
+    Printf("Msk 0x%02X\r", Msk);
+    if(MustSleep) return;
+    Resume();
+    // Check if all buttons released
+    if(Msk == 0) {
+        if(!IsPlayingIntro) { // Ignore btn release after pwron
+            TmrDoFade.StartOrRestart(); // Fade after some time
+        }
+        IsPlayingIntro = false;
+    }
+    // Something pressed
+    else {
+        if(IsPlayingIntro) return;
+        TmrDoFade.Stop(); // Do not fade, as btn is pressed
+        int32_t Indx = -1;
+        // No combo for Btn0
+        if     (Msk == BTN1) Indx = 0;
+        // Btn1: Is there a Combo?
+        else if(Msk == (BTN2|BTN3)) Indx = 7; // Combo 1 + 2
+        else if(Msk == (BTN2|BTN4)) Indx = 8; // Combo 1 + 3
+        else if(Msk == (BTN2|BTN5)) Indx = 9; // Combo 1 + 4
+        else if(Msk == (BTN2|BTN6)) Indx = 10; // Combo 1 + 5
+        else if(Msk == (BTN2|BTN7)) Indx = 11; // Combo 1 + 6
+        else if(Msk == BTN2) Indx = 1; // No Combo
+        // Btn2: is there a Combo?
+        else if(Msk == (BTN3|BTN4)) Indx = 12; // Combo 2 + 3
+        else if(Msk == (BTN3|BTN5)) Indx = 13; // Combo 2 + 4
+        else if(Msk == (BTN3|BTN6)) Indx = 14; // Combo 2 + 5
+        else if(Msk == (BTN3|BTN7)) Indx = 15; // Combo 2 + 6
+        else if(Msk == BTN3) Indx = 2; // No Combo
+        // Btn3: is there a Combo?
+        else if(Msk == (BTN4|BTN5)) Indx = 15; // Combo 3 + 4
+        else if(Msk == (BTN4|BTN6)) Indx = 16; // Combo 3 + 5
+        else if(Msk == (BTN4|BTN7)) Indx = 17; // Combo 3 + 6
+        else if(Msk == BTN4) Indx = 3; // No Combo
+        // Btn4: is there a Combo?
+        else if(Msk == (BTN5|BTN6)) Indx = 18; // Combo 4 + 5
+        else if(Msk == (BTN5|BTN7)) Indx = 19; // Combo 4 + 6
+        else if(Msk == BTN5) Indx = 4; // No Combo
+        // Check if need to sleep: 5 & 6 pressed
+        else if(Msk == (BTN6 | BTN7)) {
+            MustSleep = true;
+            AuPlayer.Play("Sleep.wav", spmSingle);
+            return;
+        }
+        // Btn5 & Btn6: no Combo
+        else if(Msk == BTN6) Indx = 5;
+        else if(Msk == BTN7) Indx = 6;
+        if(Indx < 0 or Indx >= FNAME_CNT) return; // Something strange there, do nothing
+        // Correct btn is pressed, process it depending on state
+        if(!AuPlayer.IsPlayingNow() or (Indx != PrevIndx)) { // not playing or other btn is pressed
+            AuPlayer.Play(Filenames[Indx], spmSingle);
+        }
+            PrevIndx = Indx;
+    }
+}
+
 __noreturn
 void ITask() {
     while(true) {
@@ -156,64 +223,16 @@ void ITask() {
                 Printf("TmrOff timeout\r");
                 break;
 
-            case evtIdButtons:
-                Printf("Msk 0x%02X\r", Msg.BtnPressedMask);
-                Resume();
-                // Check if all buttons released
-                if(Msg.BtnPressedMask == 0) {
-                    if(IsPlayingIntro) IsPlayingIntro = false; // Ignore btn release after pwron
-                    else AuPlayer.FadeOut();
-                }
-                // Something pressed
-                else if(!(IsPlayingIntro and AuPlayer.IsPlayingNow())) { // Ignore btn if playing intro after pwron
-                    IsPlayingIntro = false;
-                    uint8_t Msk = Msg.BtnPressedMask; // To make things shorter
-                    int8_t Indx = -1;
-                    // No combo for Btn0
-                    if     (Msk == (1<<0)) Indx = 0;
-                    // Btn1: Is there a Combo?
-                    else if(Msk == ((1<<1)|(1<<2))) Indx = 7; // Combo 1 + 2
-                    else if(Msk == ((1<<1)|(1<<3))) Indx = 8; // Combo 1 + 3
-                    else if(Msk == ((1<<1)|(1<<4))) Indx = 9; // Combo 1 + 4
-                    else if(Msk == ((1<<1)|(1<<5))) Indx = 10; // Combo 1 + 5
-                    else if(Msk == ((1<<1)|(1<<6))) Indx = 11; // Combo 1 + 6
-                    else if(Msk == (1<<1)) Indx = 1; // No Combo
-                    // Btn2: is there a Combo?
-                    else if(Msk == ((1<<2)|(1<<3))) Indx = 12; // Combo 2 + 3
-                    else if(Msk == ((1<<2)|(1<<4))) Indx = 13; // Combo 2 + 4
-                    else if(Msk == ((1<<2)|(1<<5))) Indx = 14; // Combo 2 + 5
-                    else if(Msk == ((1<<2)|(1<<6))) Indx = 15; // Combo 2 + 6
-                    else if(Msk == (1<<2)) Indx = 2; // No Combo
-                    // Btn3: is there a Combo?
-                    else if(Msk == ((1<<3)|(1<<4))) Indx = 15; // Combo 3 + 4
-                    else if(Msk == ((1<<3)|(1<<5))) Indx = 16; // Combo 3 + 5
-                    else if(Msk == ((1<<3)|(1<<6))) Indx = 17; // Combo 3 + 6
-                    else if(Msk == (1<<3)) Indx = 3; // No Combo
-                    // Btn4: is there a Combo?
-                    else if(Msk == ((1<<4)|(1<<5))) Indx = 18; // Combo 4 + 5
-                    else if(Msk == ((1<<4)|(1<<6))) Indx = 19; // Combo 4 + 6
-                    else if(Msk == (1<<4)) Indx = 4; // No Combo
-                    // Check if need to sleep: 5 & 6 pressed
-                    else if(Msk == ((1<<5) | (1<<6))) {
-                        MustSleep = true;
-                        AuPlayer.Play("Sleep.wav", spmSingle);
-                    }
-                    // Btn5 & Btn6: no Combo
-                    else if(Msk == (1<<5)) Indx = 5;
-                    else if(Msk == (1<<6)) Indx = 6;
-                    if(Indx >= 0) {
-                        AuPlayer.Play(Filenames[Indx], spmSingle);
-                    }
-                }
-                break;
+            case evtIdButtons: OnNewBtnMsk(Msg.BtnPressedMask); break;
 
-            // ==== Sound ====
             case evtIdAudioPlayStop:
-//                Printf("Snd Done\r");
+                Printf("Snd Done\r");
+                Standby();
                 IsPlayingIntro = false;
                 if(MustSleep) EnterSleep();
-                Standby();
                 break;
+
+            case evtIdDoFade: AuPlayer.FadeOut(); break;
 
             case evtIdEverySecond:
 //                Printf("Second\r");

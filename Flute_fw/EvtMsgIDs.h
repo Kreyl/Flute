@@ -29,6 +29,7 @@ enum EvtMsgId_t {
     evtIdButtons,
     evtIdAcc,
     evtIdPwrOffTimeout,
+    evtIdDoFade,
 };
 
 #endif //EVTMSGIDS_H__
