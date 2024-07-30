@@ -43,16 +43,12 @@ static TmrKL_t TmrOneSecond {TIME_MS2I(999), evtIdEverySecond, tktPeriodic}; // 
 
 static Charger_t Charger;
 
-#define FNAME_CNT   15
+#define FNAME_CNT   20
 const char *Filenames[FNAME_CNT] = {
         "1.wav", "2.wav", "3.wav", "4.wav", "5.wav",
         "6.wav", "7.wav", "8.wav", "9.wav", "10.wav",
-        "11.wav", "12.wav", "13.wav", "14.wav", "15.wav"
-};
-const Color_t Colors[FNAME_CNT] = {
-        clGreen, clBlack, clBlue, clCyan, clMagenta,
-        clRed, clYellow, clGreen, clCyan, clBlue,
-        clGreen, clBlack, clBlue, clCyan, clMagenta,
+        "11.wav", "12.wav", "13.wav", "14.wav", "15.wav",
+        "16.wav", "17.wav", "18.wav", "19.wav", "20.wav"
 };
 #endif
 
@@ -82,7 +78,7 @@ int main(void) {
 
 #if 1 // ==== Clk, Os, EvtQ, Uart ====
     // Setup clock frequency
-    Clk.SetCoreClk(cclk48MHz);
+    Clk.SetCoreClk(cclk24MHz);
     // 48MHz clock
     Clk.SetupSai1Qas48MhzSrc();
     Clk.UpdateFreqValues();
@@ -126,13 +122,8 @@ int main(void) {
 
     SD.Init();
 
-    uint32_t RPwrId = 5;
-
     // Init if SD ok
     if(SD.IsReady) {
-        if(ini::Read<uint32_t>("Settings.ini", "Radio", "Power", &RPwrId) != retvOk) RPwrId = 5;
-        if(RPwrId > 11) RPwrId = 11;
-
         Led.StartOrRestart(lsqOk);
         UsbMsd.Init();
         AuPlayer.Play("WakeUp.wav", spmSingle);
@@ -145,7 +136,7 @@ int main(void) {
         EnterSleep();
     }
 
-    Radio.Init(RPwrId);
+    Radio.Init(0);
 
     // Main cycle
     ITask();
@@ -166,50 +157,52 @@ void ITask() {
                 break;
 
             case evtIdButtons:
-                Printf("Btn 0x%02X\r", Msg.BtnPressedMask);
+                Printf("Msk 0x%02X\r", Msg.BtnPressedMask);
                 Resume();
                 // Check if all buttons released
                 if(Msg.BtnPressedMask == 0) {
                     if(IsPlayingIntro) IsPlayingIntro = false; // Ignore btn release after pwron
                     else AuPlayer.FadeOut();
-                    Radio.MustTx = false;
                 }
                 // Something pressed
                 else if(!(IsPlayingIntro and AuPlayer.IsPlayingNow())) { // Ignore btn if playing intro after pwron
                     IsPlayingIntro = false;
                     uint8_t Msk = Msg.BtnPressedMask; // To make things shorter
-                    // Check if need to sleep: 6 & 7 pressed
-                    if(Msk == ((1<<5) | (1<<6))) {
+                    int8_t Indx = -1;
+                    // No combo for Btn0
+                    if     (Msk == (1<<0)) Indx = 0;
+                    // Btn1: Is there a Combo?
+                    else if(Msk == ((1<<1)|(1<<2))) Indx = 7; // Combo 1 + 2
+                    else if(Msk == ((1<<1)|(1<<3))) Indx = 8; // Combo 1 + 3
+                    else if(Msk == ((1<<1)|(1<<4))) Indx = 9; // Combo 1 + 4
+                    else if(Msk == ((1<<1)|(1<<5))) Indx = 10; // Combo 1 + 5
+                    else if(Msk == ((1<<1)|(1<<6))) Indx = 11; // Combo 1 + 6
+                    else if(Msk == (1<<1)) Indx = 1; // No Combo
+                    // Btn2: is there a Combo?
+                    else if(Msk == ((1<<2)|(1<<3))) Indx = 12; // Combo 2 + 3
+                    else if(Msk == ((1<<2)|(1<<4))) Indx = 13; // Combo 2 + 4
+                    else if(Msk == ((1<<2)|(1<<5))) Indx = 14; // Combo 2 + 5
+                    else if(Msk == ((1<<2)|(1<<6))) Indx = 15; // Combo 2 + 6
+                    else if(Msk == (1<<2)) Indx = 2; // No Combo
+                    // Btn3: is there a Combo?
+                    else if(Msk == ((1<<3)|(1<<4))) Indx = 15; // Combo 3 + 4
+                    else if(Msk == ((1<<3)|(1<<5))) Indx = 16; // Combo 3 + 5
+                    else if(Msk == ((1<<3)|(1<<6))) Indx = 17; // Combo 3 + 6
+                    else if(Msk == (1<<3)) Indx = 3; // No Combo
+                    // Btn4: is there a Combo?
+                    else if(Msk == ((1<<4)|(1<<5))) Indx = 18; // Combo 4 + 5
+                    else if(Msk == ((1<<4)|(1<<6))) Indx = 19; // Combo 4 + 6
+                    else if(Msk == (1<<4)) Indx = 4; // No Combo
+                    // Check if need to sleep: 5 & 6 pressed
+                    else if(Msk == ((1<<5) | (1<<6))) {
                         MustSleep = true;
                         AuPlayer.Play("Sleep.wav", spmSingle);
-                        Radio.MustTx = false;
                     }
-                    // Check if need to send "Stop" to speaking stone
-                    else if(Msk == ((1<<1) | (1<<0))) {
-                        Radio.ClrToTx = clBlack;
-                        Radio.BtnIndx = 0xFF; // Means Stop
-                        Radio.MustTx = true;
-                    }
-                    // Something else pressed, play what needed
-                    else {
-                        int8_t Indx = -1;
-                        // Get lesser button
-                        if     (Msk & (1<<0)) Indx = 0;
-                        else if(Msk & (1<<1)) Indx = 1;
-                        else if(Msk & (1<<2)) Indx = 2;
-                        else if(Msk & (1<<3)) Indx = 3;
-                        else if(Msk & (1<<4)) Indx = 4;
-                        if(Indx >= 0) { // Do nothing if no lesser button is pressed
-                            // Get combo
-                            if(Msk & (1<<5)) Indx += 5; // Combo with 6
-                            else if(Msk & (1<<6)) Indx += 10; // Combo with 7
-                           // Play
-                            AuPlayer.Play(Filenames[Indx], spmSingle);
-                            // Radio
-                            Radio.ClrToTx = Colors[Indx];
-                            Radio.BtnIndx = Indx;
-                            Radio.MustTx = true;
-                        }
+                    // Btn5 & Btn6: no Combo
+                    else if(Msk == (1<<5)) Indx = 5;
+                    else if(Msk == (1<<6)) Indx = 6;
+                    if(Indx >= 0) {
+                        AuPlayer.Play(Filenames[Indx], spmSingle);
                     }
                 }
                 break;

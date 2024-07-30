@@ -77,10 +77,10 @@ uint8_t rLevel1_t::Init(uint32_t RPwrId) {
         CC.SetChannel(RCHNL_EACH_OTH);
         CC.SetTxPower(PwrTable[RPwrId]);
         CC.SetBitrate(CCBitrate100k);
-//        CC.EnterPwrDown();
-        Printf("RPwr: %u\r", RPwrId);
+        CC.EnterPwrDown();
+//        Printf("RPwr: %u\r", RPwrId);
         // Thread
-        chThdCreateStatic(warLvl1Thread, sizeof(warLvl1Thread), HIGHPRIO, (tfunc_t)rLvl1Thread, NULL);
+//        chThdCreateStatic(warLvl1Thread, sizeof(warLvl1Thread), HIGHPRIO, (tfunc_t)rLvl1Thread, NULL);
         return retvOk;
     }
     else return retvFail;
